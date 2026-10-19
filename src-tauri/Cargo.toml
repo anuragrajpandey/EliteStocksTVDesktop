@@ -1,0 +1,12 @@
+[package]
+name = "elitestocks-tv-desktop"
+version = "0.1.0"
+description = "EliteStocks TV Windows desktop IPTV player"
+authors = ["EliteStocks"]
+edition = "2021"
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+tauri = { version = "2", features = [] }

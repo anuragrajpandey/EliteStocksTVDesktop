@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
     inputs:
       build_reason:
-        description: "Why is this build being run?"
+        description: "Optional reason for this build"
         required: false
         type: string
         default: "Manual verification"
@@ -18,16 +18,43 @@ concurrency:
 
 jobs:
   build:
-    name: Build Windows app
+    name: Build Windows installer
     runs-on: windows-latest
+    timeout-minutes: 45
     steps:
       - name: Checkout source
         uses: actions/checkout@v4
 
-      - name: Report scaffold status
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Set up stable Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: stable
+          targets: x86_64-pc-windows-msvc
+
+      - name: Record manual build reason
         shell: pwsh
-        run: |
-          Write-Host "Manual Windows build requested: ${{ inputs.build_reason }}"
-          if (-not (Test-Path "package.json")) {
-            Write-Error "App scaffold not present yet. Add the frontend and Tauri project before enabling compilation."
-          }
+        env:
+          BUILD_REASON: ${{ inputs.build_reason }}
+        run: Write-Host "Manual Windows build: $env:BUILD_REASON"
+
+      - name: Install frontend dependencies
+        run: npm install --no-audit --no-fund
+
+      - name: Type-check and build frontend
+        run: npm run build
+
+      - name: Build Tauri installer
+        run: npm run tauri build
+
+      - name: Upload Windows installer
+        uses: actions/upload-artifact@v4
+        with:
+          name: EliteStocks-TV-Windows-Installer
+          path: src-tauri/target/release/bundle/nsis/*.exe
+          if-no-files-found: error
+          retention-days: 14
