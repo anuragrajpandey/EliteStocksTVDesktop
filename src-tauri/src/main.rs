@@ -15,7 +15,7 @@ use windows_sys::Win32::{
     System::LibraryLoader::GetModuleHandleW,
     UI::WindowsAndMessaging::{
         CreateWindowExW, SetWindowPos, ShowWindow, HWND_TOP, SW_HIDE, SW_SHOW, SWP_NOACTIVATE,
-        SWP_NOOWNERZORDER, WS_CHILD, WS_CLIPCHILDREN, WS_CLIPSIBLINGS,
+        SWP_NOOWNERZORDER, SS_BLACKRECT, WS_CHILD, WS_CLIPCHILDREN, WS_CLIPSIBLINGS,
     },
 };
 
@@ -37,7 +37,7 @@ fn create_video_host(parent: isize) -> Result<isize, String> {
             0,
             class_name.as_ptr(),
             window_name.as_ptr(),
-            WS_CHILD | WS_CLIPSIBLINGS | WS_CLIPCHILDREN,
+            WS_CHILD | WS_CLIPSIBLINGS | WS_CLIPCHILDREN | SS_BLACKRECT,
             0,
             0,
             1,
@@ -234,12 +234,12 @@ fn stop_stream(state: State<'_, MpvState>) -> Result<String, String> {
     let stop_result = if let Some(mut child) = active.take() {
         match child.try_wait() {
             Ok(Some(_)) => Ok("Playback has already stopped.".to_string()),
-            Ok(None) => {
-                child
-                    .kill()
-                    .map_err(|error| format!("Could not stop MPV: {error}"))?;
-                let _ = child.wait();
-                Ok("MPV playback stopped.".to_string())
+            Ok(None) => match child.kill() {
+                Ok(()) => {
+                    let _ = child.wait();
+                    Ok("MPV playback stopped.".to_string())
+                }
+                Err(error) => Err(format!("Could not stop MPV: {error}")),
             }
             Err(error) => Err(format!("Could not check MPV status: {error}")),
         }
