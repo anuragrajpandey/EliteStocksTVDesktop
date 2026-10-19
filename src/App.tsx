@@ -1,4 +1,4 @@
-import { FormEvent, useState } from "react";
+import { FormEvent, useEffect, useRef, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import {
   Activity,
@@ -38,10 +38,44 @@ const shelves = [
 function App() {
   const [activePage, setActivePage] = useState("Home");
   const [streamUrl, setStreamUrl] = useState("");
+  const [isPlaying, setIsPlaying] = useState(false);
+  const videoFrameRef = useRef<HTMLDivElement | null>(null);
   const [busy, setBusy] = useState(false);
   const [status, setStatus] = useState("");
   const [statusKind, setStatusKind] = useState<"success" | "error" | "info">("info");
   const [searchText, setSearchText] = useState("");
+
+
+  useEffect(() => {
+    const frame = videoFrameRef.current;
+    if (!frame) return;
+
+    const syncBounds = () => {
+      const rect = frame.getBoundingClientRect();
+      invoke("set_video_bounds", {
+        x: rect.left,
+        y: rect.top,
+        width: rect.width,
+        height: rect.height,
+        scaleFactor: window.devicePixelRatio || 1,
+        visible: isPlaying && rect.width > 0 && rect.height > 0,
+      }).catch((error) => {
+        console.debug("Video surface bounds update:", error);
+      });
+    };
+
+    const observer = new ResizeObserver(syncBounds);
+    observer.observe(frame);
+    window.addEventListener("resize", syncBounds);
+    window.addEventListener("scroll", syncBounds, true);
+    syncBounds();
+
+    return () => {
+      observer.disconnect();
+      window.removeEventListener("resize", syncBounds);
+      window.removeEventListener("scroll", syncBounds, true);
+    };
+  }, [isPlaying]);
 
   const filteredNavigation = navigation.filter((item) =>
     item.label.toLowerCase().includes(searchText.toLowerCase()),
@@ -60,6 +94,7 @@ function App() {
     setStatus("");
     try {
       const response = await invoke<string>("play_stream", { streamUrl: cleanUrl });
+      setIsPlaying(true);
       setStatusKind("success");
       setStatus(response);
     } catch (error) {
@@ -74,6 +109,7 @@ function App() {
     setBusy(true);
     try {
       const response = await invoke<string>("stop_stream");
+      setIsPlaying(false);
       setStatusKind("info");
       setStatus(response);
     } catch (error) {
@@ -106,7 +142,7 @@ function App() {
         <div className="sidebar-bottom">
           <div className="engine-card">
             <span className="engine-icon"><Activity size={17} /></span>
-            <div><strong>Playback engine</strong><span>MPV · Native process</span></div>
+            <div><strong>Playback engine</strong><span>MPV · Embedded surface</span></div>
             <span className="engine-dot" />
           </div>
           <button className="nav-item secondary-nav" onClick={() => setActivePage("Settings")}><Settings2 size={18} /><span>Settings</span></button>
@@ -153,15 +189,24 @@ function App() {
           <section className="stream-panel">
             <div className="section-heading">
               <div><span className="section-kicker">QUICK START</span><h2>Play a stream</h2></div>
-              <div className="engine-status"><span className="status-pulse" /> MPV media engine</div>
+              <div className="engine-status"><span className="status-pulse" /> Embedded MPV media engine</div>
+            </div>
+            <div className={`video-frame ${isPlaying ? "playing" : ""}`} ref={videoFrameRef} aria-label="Embedded video player" role="region">
+              {!isPlaying && (
+                <div className="video-placeholder">
+                  <div className="placeholder-screen"><MonitorPlay size={42} strokeWidth={1.1} /></div>
+                  <strong>Your screen. Your stream.</strong>
+                  <span>Enter a direct stream URL below to start watching.</span>
+                </div>
+              )}
             </div>
             <form className="stream-form" onSubmit={handlePlay}>
               <div className="url-input-wrap"><Wifi size={18} /><input id="stream-url" type="url" value={streamUrl} onChange={(event) => setStreamUrl(event.target.value)} placeholder="Paste a direct stream URL (https://… or rtmp://…)" autoComplete="url" /></div>
-              <button className="play-button" type="submit" disabled={busy}><Play size={16} fill="currentColor" /> {busy ? "Opening…" : "Play in MPV"}</button>
+              <button className="play-button" type="submit" disabled={busy}><Play size={16} fill="currentColor" /> {busy ? "Opening…" : "Play in player"}</button>
               <button className="stop-button" type="button" onClick={handleStop} disabled={busy} aria-label="Stop playback"><Square size={15} fill="currentColor" /></button>
             </form>
             {status && <div className={`status-message ${statusKind}`}>{statusKind === "success" ? <CheckCircle2 size={16} /> : <XCircle size={16} />}<span>{status}</span></div>}
-            <p className="stream-hint"><ShieldCheck size={14} /> Use a direct stream URL from a source you're authorized to access. MPV must be installed and available on your Windows PATH.</p>
+            <p className="stream-hint"><ShieldCheck size={14} /> Use a direct stream URL from a source you're authorized to access. MPV must be installed and available on your Windows PATH for embedded playback.</p>
           </section>
 
           <section className="explore-section">
@@ -179,7 +224,7 @@ function App() {
                 </button>
               ))}
             </div>
-            <div className="foundation-note"><span className="foundation-note-icon"><Compass size={17} /></span><div><strong>{activePage === "Home" ? "A fresh start, built for smooth navigation" : `${activePage} is part of the interface foundation`}</strong><p>Playlist import, EPG data, library browsing, and embedded MPV video rendering will be added in planned milestones. The current screen is the initial desktop shell.</p></div></div>
+            <div className="foundation-note"><span className="foundation-note-icon"><Compass size={17} /></span><div><strong>{activePage === "Home" ? "A fresh start, built for smooth navigation" : `${activePage} is part of the interface foundation`}</strong><p>The native MPV video surface is embedded in this window. Playlist import, EPG data, and full library browsing are planned next.</p></div></div>
           </section>
 
           <footer className="app-footer"><span>ELITESTOCKS TV <b>·</b> DESKTOP</span><span>REACT <b>·</b> TAURI <b>·</b> WEBVIEW2 <b>·</b> MPV</span></footer>
