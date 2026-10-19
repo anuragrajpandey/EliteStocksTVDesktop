@@ -40,7 +40,7 @@ jobs:
         shell: pwsh
         env:
           BUILD_REASON: ${{ inputs.build_reason }}
-        run: Write-Host "Manual Windows build: $env:BUILD_REASON"
+        run: 'Write-Host "Manual Windows build: $env:BUILD_REASON"'
 
       - name: Install frontend dependencies
         run: npm install --no-audit --no-fund
