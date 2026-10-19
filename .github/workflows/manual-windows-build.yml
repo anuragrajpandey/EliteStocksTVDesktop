@@ -1,6 +1,6 @@
 name: Manual Windows Build
 
-on:
+'on':
   workflow_dispatch:
     inputs:
       build_reason:
@@ -43,6 +43,9 @@ jobs:
 
       - name: Install frontend dependencies
         run: npm install --no-audit --no-fund
+
+      - name: Generate Windows application icons
+        run: npm run icons
 
       - name: Type-check and build frontend
         run: npm run build
