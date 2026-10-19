@@ -18,6 +18,7 @@ concurrency:
 
 jobs:
   build:
+    if: github.event_name == 'workflow_dispatch'
     name: Build Windows installer
     runs-on: windows-latest
     timeout-minutes: 45
