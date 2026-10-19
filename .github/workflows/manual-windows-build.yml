@@ -1,0 +1,33 @@
+name: Manual Windows Build
+
+on:
+  workflow_dispatch:
+    inputs:
+      build_reason:
+        description: "Why is this build being run?"
+        required: false
+        type: string
+        default: "Manual verification"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: manual-windows-build-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  build:
+    name: Build Windows app
+    runs-on: windows-latest
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+
+      - name: Report scaffold status
+        shell: pwsh
+        run: |
+          Write-Host "Manual Windows build requested: ${{ inputs.build_reason }}"
+          if (-not (Test-Path "package.json")) {
+            Write-Error "App scaffold not present yet. Add the frontend and Tauri project before enabling compilation."
+          }
