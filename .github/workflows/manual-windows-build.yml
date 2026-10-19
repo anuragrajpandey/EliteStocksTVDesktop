@@ -33,7 +33,6 @@ jobs:
       - name: Set up stable Rust
         uses: dtolnay/rust-toolchain@stable
         with:
-          toolchain: stable
           targets: x86_64-pc-windows-msvc
 
       - name: Record manual build reason
