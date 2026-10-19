@@ -29,7 +29,7 @@ npm run tauri build
 
 ## Manual GitHub Actions builds
 
-The Windows installer workflow is triggered **only by `workflow_dispatch`**. It does not run on pushes, pull requests, or releases. Open **Actions → Manual Windows Build → Run workflow** to launch a build. The installer is uploaded as a workflow artifact.
+The Windows installer workflow is triggered **only by `workflow_dispatch`**. It does not run on pushes, pull requests, or releases. After this workflow is merged into the default branch, open **Actions → Manual Windows Build → Run workflow** to launch a build. The installer is uploaded as a workflow artifact.
 
 ## Implementation principles
 
