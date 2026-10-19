@@ -1,0 +1,20 @@
+[package]
+name = "elitestocks-tv-desktop"
+version = "0.1.0"
+description = "EliteStocks TV Windows desktop IPTV player"
+authors = ["EliteStocks"]
+edition = "2021"
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+raw-window-handle = "0.6"
+tauri = { version = "2", features = [] }
+
+[target.'cfg(windows)'.dependencies]
+windows-sys = { version = "0.59", features = [
+  "Win32_Foundation",
+  "Win32_System_LibraryLoader",
+  "Win32_UI_WindowsAndMessaging"
+] }
